@@ -7,10 +7,12 @@ export default function Location({
   city,
   country,
   setWeatherData,
+  getWeatherData,
 }: {
   city: string;
   country: string;
   setWeatherData?: (data: WeatherData | null) => void;
+  getWeatherData?: () => void;
 }) {
   return (
     <View style={styles.locationContainer}>
@@ -19,7 +21,7 @@ export default function Location({
         <Text style={styles.locationText}>
           {city}, {country}
         </Text>
-        {setWeatherData && (
+        {(setWeatherData || getWeatherData) && (
           <TouchableOpacity
             style={{
               borderLeftWidth: 2,
@@ -27,8 +29,19 @@ export default function Location({
               marginLeft: 10,
               paddingLeft: 10,
             }}
-            onPress={() => setWeatherData(null)}>
-            <FeatherIcons name="x" size={28} color="white" />
+            onPress={() => {
+              if (setWeatherData) {
+                setWeatherData(null);
+              }
+              if (getWeatherData) {
+                getWeatherData();
+              }
+            }}>
+            {setWeatherData && !getWeatherData ? (
+              <FeatherIcons name="x" size={28} color="white" />
+            ) : (
+              <FeatherIcons name="refresh-cw" size={28} color="white" />
+            )}
           </TouchableOpacity>
         )}
       </View>

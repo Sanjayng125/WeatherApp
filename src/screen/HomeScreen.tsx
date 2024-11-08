@@ -5,6 +5,7 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import Geolocation, {
   GeolocationResponse,
@@ -16,6 +17,7 @@ import Forcast from '../components/Forcast';
 import WeatherInfo from '../components/WeatherInfo';
 import Location from '../components/Location';
 import {initWeatherImage} from '../utils';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const HomeScreen: React.FC = () => {
   const [location, setLocation] = useState<Coordinates | null>(null);
@@ -23,8 +25,8 @@ const HomeScreen: React.FC = () => {
     string | null
   >(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchingLocation, setFetchingLocation] = useState<boolean>(false);
 
   const [forecast, setForecast] = useState<WeatherForcast[]>([]);
 
@@ -33,6 +35,7 @@ const HomeScreen: React.FC = () => {
   const requestLocationPermission = async () => {
     setLocationError(null);
     setLocationPermissionError(null);
+    setFetchingLocation(true);
     try {
       const permission: PermissionStatus = await request(
         Platform.OS === 'ios'
@@ -48,7 +51,6 @@ const HomeScreen: React.FC = () => {
               longitude: position.coords.longitude,
             });
             getWeatherByCoordinates();
-            getWeatherForcastByCoordinates();
           },
           error => {
             console.error('Error getting location:', error);
@@ -63,7 +65,7 @@ const HomeScreen: React.FC = () => {
       console.error('Error requesting location permission:', error);
       setLocationPermissionError('Error requesting location permission');
     } finally {
-      setIsLoading(false);
+      setFetchingLocation(false);
     }
   };
 
@@ -74,8 +76,9 @@ const HomeScreen: React.FC = () => {
   const getWeatherByCoordinates = async () => {
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${location?.latitude}&lon=${location?.longitude}&appid=${API_KEY}&units=metric`;
 
+    setError(null);
+
     try {
-      setIsLoading(true);
       const response = await fetch(url);
       const resData: WeatherDataResponse = await response.json();
 
@@ -92,19 +95,18 @@ const HomeScreen: React.FC = () => {
         country: resData.sys.country,
       });
 
-      setError(null);
+      getWeatherForcastByCoordinates();
     } catch (error) {
       setError('Error fetching weather data');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const getWeatherForcastByCoordinates = async () => {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${location?.latitude}&lon=${location?.longitude}&appid=${API_KEY}`;
 
+    setError(null);
+
     try {
-      setIsLoading(true);
       const response = await fetch(url);
       const resData: WeatherForcastResponse = await response.json();
 
@@ -115,8 +117,6 @@ const HomeScreen: React.FC = () => {
       setError(null);
     } catch (error) {
       setError('Error fetching weather forcast data');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -129,11 +129,30 @@ const HomeScreen: React.FC = () => {
 
   return (
     <LinearGradient colors={['#250046', '#7f60d4']} style={styles.container}>
-      {isLoading && (
-        <ActivityIndicator size={100} color={'white'} style={styles.loader} />
+      {!error && !locationError && !locationPermissionError && !weatherData && (
+        <View style={styles.loader}>
+          <ActivityIndicator size={100} color={'white'} />
+          {fetchingLocation && (
+            <Text style={styles.fetchingLocationText}>
+              Fetching current location...
+            </Text>
+          )}
+        </View>
       )}
       {(error || locationError || locationPermissionError) && (
         <View style={styles.errorContainer}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              if (locationError) {
+                requestLocationPermission();
+              } else {
+                getWeatherByCoordinates();
+              }
+            }}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+            <MaterialIcons name="restart-alt" size={28} color={'white'} />
+          </TouchableOpacity>
           {locationError && (
             <Text style={styles.errorText}>{locationError}</Text>
           )}
@@ -150,9 +169,14 @@ const HomeScreen: React.FC = () => {
       )}
 
       {/* Main */}
-      {location && weatherData && !isLoading && (
+      {location && weatherData && (
         <View style={styles.mainWeatherContainer}>
-          <Location city={weatherData.city} country={weatherData.country} />
+          <Location
+            city={weatherData.city}
+            country={weatherData.country}
+            getWeatherData={getWeatherByCoordinates}
+            setWeatherData={setWeatherData}
+          />
           <WeatherInfo data={weatherData} />
           {forecast && <Forcast forecast={forecast} />}
         </View>
@@ -174,7 +198,8 @@ const styles = StyleSheet.create({
     top: '40%',
   },
   mainWeatherContainer: {
-    justifyContent: 'space-between',
+    width: '100%',
+    flex: 1,
   },
   errorContainer: {
     flex: 1,
@@ -186,6 +211,29 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: 'red',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  retryButton: {
+    borderColor: 'white',
+    borderRadius: 5,
+    borderWidth: 1,
+    padding: 10,
+    marginVertical: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  fetchingLocationText: {
+    color: 'white',
     fontSize: 15,
     fontWeight: 'bold',
     textAlign: 'center',

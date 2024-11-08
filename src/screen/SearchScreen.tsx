@@ -7,6 +7,7 @@ import WeatherInfo from '../components/WeatherInfo';
 import Location from '../components/Location';
 import {initWeatherImage} from '../utils';
 import SearchBar from '../components/SearchBar';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const SearchScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -40,7 +41,6 @@ const SearchScreen: React.FC = () => {
       });
 
       getWeatherForcast(resData.coord);
-      setError(null);
     } catch (error) {
       setError('Error fetching weather data');
     } finally {
@@ -51,6 +51,8 @@ const SearchScreen: React.FC = () => {
   const getWeatherForcast = async (location: {lat: number; lon: number}) => {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${location.lat}&lon=${location.lon}&appid=${API_KEY}`;
 
+    setError(null);
+
     try {
       setIsLoading(true);
       const response = await fetch(url);
@@ -59,8 +61,6 @@ const SearchScreen: React.FC = () => {
       if (resData.list.length > 0) {
         setForecast(resData.list);
       }
-
-      setError(null);
     } catch (error) {
       setError('Error fetching weather forcast data');
     } finally {
@@ -131,7 +131,8 @@ const styles = StyleSheet.create({
     top: '40%',
   },
   mainWeatherContainer: {
-    justifyContent: 'space-between',
+    width: '100%',
+    flex: 1,
   },
   errorContainer: {
     flex: 1,
