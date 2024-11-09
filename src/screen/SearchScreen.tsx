@@ -8,6 +8,7 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {API_KEY} from '../API';
 import LinearGradient from 'react-native-linear-gradient';
@@ -16,8 +17,10 @@ import WeatherInfo from '../components/WeatherInfo';
 import Location from '../components/Location';
 import {initWeatherImage} from '../utils';
 import SearchBar from '../components/SearchBar';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FiveDayForecast from '../components/FiveDayForecast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AntIcons from 'react-native-vector-icons/AntDesign';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const SearchScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -30,12 +33,17 @@ const SearchScreen: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  const getWeather = async () => {
-    if (search.trim() === '') return;
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${search.trim()}&appid=${API_KEY}`;
+  const [history, setHistory] = useState<string[]>([]);
+
+  const getWeather = async (historySearch?: string) => {
+    if (search.trim() === '' && !historySearch) return;
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${
+      historySearch ? historySearch : search.trim()
+    }&appid=${API_KEY}`;
     setError(null);
     try {
       setIsLoading(true);
+      setRefreshing(true);
       const response = await fetch(url);
       const resData: WeatherDataResponse = await response.json();
 
@@ -52,11 +60,18 @@ const SearchScreen: React.FC = () => {
         country: resData.sys.country,
       });
 
+      if (!history.includes(search.toLowerCase().trim()) && !historySearch) {
+        const newHistory = [...history, search.toLowerCase().trim()];
+        setHistory(newHistory);
+        saveHistory(newHistory);
+      }
+
       getWeatherForcast(resData.coord);
     } catch (error) {
       setError('Error fetching weather data');
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -80,32 +95,51 @@ const SearchScreen: React.FC = () => {
     }
   };
 
+  const getHistory = async () => {
+    const res = await AsyncStorage.getItem('history');
+
+    if (res) {
+      setHistory(JSON.parse(res));
+    }
+  };
+
+  const saveHistory = async (history: string[]) => {
+    await AsyncStorage.setItem('history', JSON.stringify(history));
+  };
+
+  useEffect(() => {
+    getHistory();
+  }, []);
+
+  const removeHistory = async (item: string) => {
+    const newHistory = history.filter(i => i !== item);
+    setHistory(newHistory);
+    saveHistory(newHistory);
+  };
+
   return (
     <LinearGradient colors={['#250046', '#7f60d4']} style={styles.container}>
       {isLoading && (
         <ActivityIndicator size={100} color={'white'} style={styles.loader} />
       )}
       {error && (
-        <>
-          <View style={styles.errorImageContainer}>
-            <Image
-              source={require('../assets/images/location-not-found.webp')}
-              style={styles.errorImage}
-            />
-            <Text style={[styles.errorText, {fontSize: 20}]}>
-              Location not found or cannot be reached!
-            </Text>
-          </View>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        </>
+        <View style={styles.errorImageContainer}>
+          <Image
+            source={require('../assets/images/location-not-found.webp')}
+            style={styles.errorImage}
+          />
+          <Text style={[styles.errorText, {fontSize: 20}]}>
+            Location not found or cannot be reached!
+          </Text>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
       )}
 
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={getWeather} />
-        }>
+        }
+        showsVerticalScrollIndicator={false}>
         {/* Main */}
         <View style={styles.mainWeatherContainer}>
           {!weatherData && (
@@ -116,8 +150,42 @@ const SearchScreen: React.FC = () => {
             />
           )}
 
-          {!error && !weatherData && !isLoading && (
-            <Text style={styles.text}>Search for a city to see weather</Text>
+          {!error && !weatherData && !isLoading && history.length === 0 && (
+            <Text style={[styles.text, {textAlign: 'center'}]}>
+              Search for a city to see weather
+            </Text>
+          )}
+          {!error && !weatherData && !isLoading && history.length && (
+            <View style={styles.historyContainer}>
+              <Text style={styles.text}>History</Text>
+              {history.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.historyItem}
+                  onPress={() => getWeather(item)}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}>
+                    <MaterialIcons name="history" size={30} color="black" />
+                    <Text style={styles.historyText}>{item}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      removeHistory(item);
+                    }}>
+                    <AntIcons
+                      name="closecircleo"
+                      size={30}
+                      color="black"
+                      style={styles.historyIcon}
+                    />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
 
           {weatherData && !isLoading && (
@@ -146,6 +214,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 10,
   },
+  historyContainer: {
+    paddingTop: 10,
+  },
+  historyItem: {
+    borderRadius: 10,
+    padding: 10,
+    marginHorizontal: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    elevation: 5,
+    marginVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  historyText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    padding: 1,
+  },
+  historyIcon: {
+    padding: 1,
+  },
   loader: {
     position: 'absolute',
     left: Dimensions.get('window').width / 2 - 50,
@@ -155,14 +245,6 @@ const styles = StyleSheet.create({
   mainWeatherContainer: {
     width: '100%',
     flex: 1,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // position: 'absolute',
-    bottom: 10,
-    padding: 10,
   },
   errorText: {
     color: 'red',
@@ -182,7 +264,8 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 20,
     color: 'white',
-    textAlign: 'center',
+    fontWeight: 'bold',
+    margin: 10,
   },
 });
 

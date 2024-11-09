@@ -1,12 +1,11 @@
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import React from 'react';
 import AntIcons from 'react-native-vector-icons/AntDesign';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootParamsList} from '../../App';
+import {useNavigation} from '@react-navigation/native';
+
+type SearchBarProps = NativeStackNavigationProp<RootParamsList, 'Home'>;
 
 export default function SearchBar({
   search,
@@ -17,22 +16,25 @@ export default function SearchBar({
   setSearch: (val: string) => void;
   getWeather: () => void;
 }) {
+  const {popToTop} = useNavigation<SearchBarProps>();
+
   return (
     <View style={styles.searchBarContainer}>
+      <TouchableOpacity onPress={popToTop}>
+        <AntIcons name="arrowleft" size={30} color="white" />
+      </TouchableOpacity>
       <TextInput
+        onSubmitEditing={() => {
+          if (search.trim() !== '') {
+            getWeather();
+            setSearch('');
+          }
+        }}
         placeholder="Search for a city"
         style={styles.searchBar}
         value={search}
         onChangeText={text => setSearch(text)}
       />
-      <TouchableOpacity
-        style={styles.searchBtn}
-        onPress={() => {
-          getWeather();
-          setSearch('');
-        }}>
-        <AntIcons name="search1" size={30} color="white" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -43,15 +45,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'white',
   },
   searchBar: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: 'white',
     padding: 10,
-    margin: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 10,
     fontSize: 20,
     color: 'white',
   },
@@ -59,6 +60,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 10,
     padding: 10,
-    margin: 10,
   },
 });

@@ -148,7 +148,7 @@ const HomeScreen: React.FC = () => {
           Fetching current location...
         </Text>
       )}
-      {(error || locationError || locationPermissionError) && (
+      {(error || locationError || locationPermissionError) && !weatherData && (
         <View style={styles.errorContainer}>
           <TouchableOpacity
             style={styles.retryButton}
@@ -188,7 +188,8 @@ const HomeScreen: React.FC = () => {
             refreshing={refreshing}
             onRefresh={requestLocationPermission}
           />
-        }>
+        }
+        showsVerticalScrollIndicator={false}>
         {/* Main */}
         {location && weatherData && (
           <View style={styles.mainWeatherContainer}>

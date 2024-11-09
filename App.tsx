@@ -5,19 +5,21 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import HomeScreen from './src/screen/HomeScreen';
 import SearchScreen from './src/screen/SearchScreen';
 import AntIcons from 'react-native-vector-icons/AntDesign';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
-type RootParamsList = {
+export type RootParamsList = {
   Home: undefined;
   Search: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootParamsList>();
+const Stack = createNativeStackNavigator<RootParamsList>();
 
 export default function App() {
   return (
     <NavigationContainer>
       <StatusBar backgroundColor={'#250046'} />
-      <Tab.Navigator
+      {/* <Tab.Navigator
         initialRouteName="Home"
         screenOptions={{
           headerShown: false,
@@ -55,7 +57,22 @@ export default function App() {
             ),
           }}
         />
-      </Tab.Navigator>
+      </Tab.Navigator> */}
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+        }}>
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            title: 'Home',
+            headerTintColor: '#4400ff',
+          }}
+        />
+        <Stack.Screen name="Search" component={SearchScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }

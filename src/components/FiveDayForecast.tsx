@@ -33,7 +33,6 @@ export default function FiveDayForecast({
     <View style={styles.forcastContainer}>
       <View style={styles.dateContainer}>
         <Text style={styles.today}>5 Day Forecast</Text>
-        {/* <Text style={styles.todayDate}>{formatDateManually(new Date())}</Text> */}
       </View>
       {forecastGroups.slice(1).map((group, index) => (
         <View
