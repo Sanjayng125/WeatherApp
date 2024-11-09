@@ -6,18 +6,12 @@ export default function WeatherInfo({
   data,
   kelvin,
 }: {
-  data: {
-    weatherImage: ImageSourcePropType;
-    temperature: string;
-    maxTemperature: string;
-    minTemperature: string;
-    windSpeed: string;
-    humidity: string;
-  };
+  data: WeatherData;
   kelvin?: boolean;
 }) {
   const {
     weatherImage,
+    main,
     temperature,
     maxTemperature,
     minTemperature,
@@ -29,6 +23,7 @@ export default function WeatherInfo({
     <>
       <View style={styles.weatherInfoContainer}>
         <Image source={weatherImage} style={styles.weatherImage} />
+        <Text style={styles.mainText}>{main}</Text>
         <Text style={styles.mainTempText}>
           {kelvin ? (Number(temperature) - 273.15).toFixed(1) : temperature}°C
         </Text>
@@ -75,6 +70,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     resizeMode: 'contain',
+  },
+  mainText: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: 'white',
   },
   mainTempText: {
     fontSize: 40,

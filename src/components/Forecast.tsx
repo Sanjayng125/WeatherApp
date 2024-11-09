@@ -3,7 +3,7 @@ import React from 'react';
 import {WEATHER_CONDITIONS} from '../constants/WeatherConditions';
 import {formatDateManually, initWeatherImage} from '../utils';
 
-export default function Forcast({forecast}: {forecast: WeatherForcast[]}) {
+export default function Forecast({forecast}: {forecast: WeatherForcast[]}) {
   return (
     <View style={styles.forcastContainer}>
       <View style={styles.dateContainer}>
@@ -44,8 +44,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderTopRightRadius: 10,
-    borderTopLeftRadius: 10,
+    borderRadius: 10,
     padding: 10,
     marginHorizontal: 10,
   },
@@ -81,8 +80,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginHorizontal: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    height: 'auto',
-    maxHeight: 200,
     elevation: 5,
   },
   forcastImage: {

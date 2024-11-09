@@ -1,13 +1,23 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, ActivityIndicator, StyleSheet, Image} from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  Image,
+  ScrollView,
+  RefreshControl,
+  Dimensions,
+} from 'react-native';
 import {API_KEY} from '../API';
 import LinearGradient from 'react-native-linear-gradient';
-import Forcast from '../components/Forcast';
+import Forcast from '../components/Forecast';
 import WeatherInfo from '../components/WeatherInfo';
 import Location from '../components/Location';
 import {initWeatherImage} from '../utils';
 import SearchBar from '../components/SearchBar';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FiveDayForecast from '../components/FiveDayForecast';
 
 const SearchScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -17,6 +27,8 @@ const SearchScreen: React.FC = () => {
   const [forecast, setForecast] = useState<WeatherForcast[]>([]);
 
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const getWeather = async () => {
     if (search.trim() === '') return;
@@ -74,21 +86,7 @@ const SearchScreen: React.FC = () => {
         <ActivityIndicator size={100} color={'white'} style={styles.loader} />
       )}
       {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Main */}
-      <View style={styles.mainWeatherContainer}>
-        {!weatherData && (
-          <SearchBar
-            search={search}
-            setSearch={setSearch}
-            getWeather={getWeather}
-          />
-        )}
-        {error && (
+        <>
           <View style={styles.errorImageContainer}>
             <Image
               source={require('../assets/images/location-not-found.webp')}
@@ -98,22 +96,44 @@ const SearchScreen: React.FC = () => {
               Location not found or cannot be reached!
             </Text>
           </View>
-        )}
-        {!error && !weatherData && !isLoading && (
-          <Text style={styles.text}>Search for a city to see weather</Text>
-        )}
-        {weatherData && !isLoading && (
-          <>
-            <Location
-              city={weatherData.city}
-              country={weatherData.country}
-              setWeatherData={setWeatherData}
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        </>
+      )}
+
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={getWeather} />
+        }>
+        {/* Main */}
+        <View style={styles.mainWeatherContainer}>
+          {!weatherData && (
+            <SearchBar
+              search={search}
+              setSearch={setSearch}
+              getWeather={getWeather}
             />
-            <WeatherInfo data={weatherData} kelvin={true} />
-            {forecast && <Forcast forecast={forecast} />}
-          </>
-        )}
-      </View>
+          )}
+
+          {!error && !weatherData && !isLoading && (
+            <Text style={styles.text}>Search for a city to see weather</Text>
+          )}
+
+          {weatherData && !isLoading && (
+            <>
+              <Location
+                city={weatherData.city}
+                country={weatherData.country}
+                setWeatherData={setWeatherData}
+              />
+              <WeatherInfo data={weatherData} kelvin={true} />
+              {forecast && <Forcast forecast={forecast} />}
+              {forecast && <FiveDayForecast forecast={forecast} />}
+            </>
+          )}
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -128,7 +148,9 @@ const styles = StyleSheet.create({
   },
   loader: {
     position: 'absolute',
-    top: '40%',
+    left: Dimensions.get('window').width / 2 - 50,
+    zIndex: 100,
+    top: Dimensions.get('window').height / 2 - 100,
   },
   mainWeatherContainer: {
     width: '100%',
@@ -138,7 +160,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
+    // position: 'absolute',
     bottom: 10,
     padding: 10,
   },
@@ -149,6 +171,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorImageContainer: {
+    position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
   },

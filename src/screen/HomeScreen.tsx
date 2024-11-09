@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
+  RefreshControl,
+  Dimensions,
 } from 'react-native';
 import Geolocation, {
   GeolocationResponse,
@@ -13,11 +15,13 @@ import Geolocation, {
 import {request, PERMISSIONS, PermissionStatus} from 'react-native-permissions';
 import {API_KEY} from '../API';
 import LinearGradient from 'react-native-linear-gradient';
-import Forcast from '../components/Forcast';
 import WeatherInfo from '../components/WeatherInfo';
 import Location from '../components/Location';
 import {initWeatherImage} from '../utils';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {ScrollView} from 'react-native';
+import Forecast from '../components/Forecast';
+import FiveDayForecast from '../components/FiveDayForecast';
 
 const HomeScreen: React.FC = () => {
   const [location, setLocation] = useState<Coordinates | null>(null);
@@ -32,10 +36,15 @@ const HomeScreen: React.FC = () => {
 
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
   const requestLocationPermission = async () => {
     setLocationError(null);
     setLocationPermissionError(null);
+    setError(null);
+    setWeatherData(null);
     setFetchingLocation(true);
+    setRefreshing(true);
     try {
       const permission: PermissionStatus = await request(
         Platform.OS === 'ios'
@@ -53,10 +62,9 @@ const HomeScreen: React.FC = () => {
             getWeatherByCoordinates();
           },
           error => {
-            console.error('Error getting location:', error);
             setLocationError('Error getting location');
           },
-          {enableHighAccuracy: true, timeout: 40000, maximumAge: 1000},
+          {enableHighAccuracy: false, timeout: 40000, maximumAge: 1000},
         );
       } else {
         setLocationPermissionError('Location permission denied');
@@ -66,6 +74,7 @@ const HomeScreen: React.FC = () => {
       setLocationPermissionError('Error requesting location permission');
     } finally {
       setFetchingLocation(false);
+      setRefreshing(false);
     }
   };
 
@@ -132,12 +141,12 @@ const HomeScreen: React.FC = () => {
       {!error && !locationError && !locationPermissionError && !weatherData && (
         <View style={styles.loader}>
           <ActivityIndicator size={100} color={'white'} />
-          {fetchingLocation && (
-            <Text style={styles.fetchingLocationText}>
-              Fetching current location...
-            </Text>
-          )}
         </View>
+      )}
+      {fetchingLocation && (
+        <Text style={styles.fetchingLocationText}>
+          Fetching current location...
+        </Text>
       )}
       {(error || locationError || locationPermissionError) && (
         <View style={styles.errorContainer}>
@@ -158,7 +167,13 @@ const HomeScreen: React.FC = () => {
           )}
           {error && <Text style={styles.errorText}>{error}</Text>}
           {locationPermissionError && (
-            <Text style={styles.errorText}>{locationPermissionError}</Text>
+            <>
+              <Text style={styles.errorText}>{locationPermissionError}</Text>
+              <Text style={styles.errorText}>
+                Please allow location permission to get your current location
+                weather
+              </Text>
+            </>
           )}
           {(locationError || locationPermissionError) && (
             <Text style={styles.errorText}>
@@ -167,20 +182,23 @@ const HomeScreen: React.FC = () => {
           )}
         </View>
       )}
-
-      {/* Main */}
-      {location && weatherData && (
-        <View style={styles.mainWeatherContainer}>
-          <Location
-            city={weatherData.city}
-            country={weatherData.country}
-            getWeatherData={getWeatherByCoordinates}
-            setWeatherData={setWeatherData}
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={requestLocationPermission}
           />
-          <WeatherInfo data={weatherData} />
-          {forecast && <Forcast forecast={forecast} />}
-        </View>
-      )}
+        }>
+        {/* Main */}
+        {location && weatherData && (
+          <View style={styles.mainWeatherContainer}>
+            <Location city={weatherData.city} country={weatherData.country} />
+            <WeatherInfo data={weatherData} />
+            {forecast && <Forecast forecast={forecast} />}
+            {forecast && <FiveDayForecast forecast={forecast} />}
+          </View>
+        )}
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -195,7 +213,9 @@ const styles = StyleSheet.create({
   },
   loader: {
     position: 'absolute',
-    top: '40%',
+    left: Dimensions.get('window').width / 2 - 50,
+    zIndex: 100,
+    top: Dimensions.get('window').height / 2 - 100,
   },
   mainWeatherContainer: {
     width: '100%',
